@@ -26,7 +26,7 @@ highway {
         //       folder = "nets/jedkriz";
         //     folder = "nets/map";
         //      folder = "nets/pisek";
-              folder = "nets/pisek-all";
+        //      folder = "nets/pisek-all";
         //   folder = "nets/CharlesSquare";
         //    folder = "nets/artificialX-junction";
         //    folder = "nets/artificialHighway-funnel";
@@ -34,7 +34,7 @@ highway {
         //     folder = "nets/artificialXS-junction";
         //folder = "nets/artificialT-junction";
         //      folder = "nets/experiments/T-junction";
-        //      folder = "nets/experiments/X-junction";
+              folder = "nets/experiments/X-junction";
         //      folder = "nets/artificialHighway";
 
         lane {
@@ -125,11 +125,11 @@ highway {
 
         }
 
-    //    simulatorsToRun = []; //if no simulator, LocalSimulator is used - perfect execution of plans
-    //    simulatorsToRun = ["SimulatorLite"];
+  //      simulatorsToRun = []; //if no simulator, LocalSimulator is used - perfect execution of plans
+  //      simulatorsToRun = ["SimulatorLite"];
 //        simulatorsToRun = ["OpenDS"];
-  //   simulatorsToRun = ["Empty"];
-        numberOfCarsInSimulation = 120;
+     simulatorsToRun = ["Empty"];
+        numberOfCarsInSimulation = 400;
         sumoSimulation = true;
         systemTime = true;
     }

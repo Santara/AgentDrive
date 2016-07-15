@@ -1,19 +1,24 @@
 package cz.agents.highway.storage.plan;
 
+import cz.agents.highway.storage.RoadObject;
+
 import java.util.*;
 
 
 public class PlansOut {
 	
-	private final Map<Integer, Collection<Action>> plans; 
+	private final Map<Integer, Collection<Action>> plans;
+    private Map<Integer, RoadObject> currStates;
 	
 	public PlansOut(PlansOut oldPlans) {
 	    this();
         this.plans.putAll(oldPlans.plans);
     }
 
+
     public PlansOut() {
         this.plans =  new LinkedHashMap<Integer, Collection<Action>>();
+        this.currStates = new LinkedHashMap<Integer, RoadObject>();
     }
 
     public void addActions(int id, List<Action> actions){
@@ -45,6 +50,14 @@ public class PlansOut {
     public void clear() {
        plans.clear();
         
+    }
+
+    public Map<Integer, RoadObject> getCurrStates() {
+        return currStates;
+    }
+
+    public void setCurrStates(Map<Integer, RoadObject> currStates) {
+        this.currStates = currStates;
     }
 
     @Override

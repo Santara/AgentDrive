@@ -32,20 +32,9 @@ public class RouteNavigator {
     private boolean isInitialized = false;
 
 
-//    public RouteNavigator(int id) {
-//        this.id = id;
-//    }
 
     public RouteNavigator(List<Edge> route) {
         this.setRoute(route);
-//        if (!Configurator.getParamBool("highway.dashboard.sumoSimulation",true) && Configurator.getParamBool("highway.rvo.agent.randomRoutes", true).equals(true)) {
-//            setRoute();
-//        }
-//        else
-//        {
-//            setRoute(id);
-//        }
-
     }
 
     private boolean initialize() {
@@ -69,19 +58,6 @@ public class RouteNavigator {
     public void resetPointPtr() {
         pointPtr = 0;
     }
-//    public void hardReset()
-//    {
-//        pointPtr = 0;
-//        route = new ArrayList<Edge>();
-//        myLifeEnds = false;
-//        if (!Configurator.getParamBool("highway.dashboard.sumoSimulation",true) && Configurator.getParamBool("highway.rvo.agent.randomRoutes", true).equals(true)) {
-//            setRoute();
-//        }
-//        else
-//        {
-//            setRoute(id);
-//        }
-//    }
 
 
     private void setRoute(List<Edge> routeToDrive) {
@@ -89,22 +65,7 @@ public class RouteNavigator {
         isInitialized = this.initialize();
 
     }
-//    private void setRoute() {
-//        Network network = Network.getInstance();
-//        XMLReader reader = XMLReader.getInstance();
-//        Map<Integer, List<String>> routes = reader.getRoutes(routeFile);
-//        Map<String, Edge> edges = network.getEdges();
-//
-//        Random rand = new Random();
-//        Object[] values = routes.values().toArray();
-//        List<String> randomValue = (List<String>)values[rand.nextInt(values.length)];
-//        //int id = rand.nextInt(routes.size()-1);
-//        for (String edge : /*routes.get(id)*/ randomValue) {
-//            route.add(edges.get(edge));
-//        }
-//        routePtr = 0;
-//        agentLane = route.get(0).getLaneByIndex(0);
-//    }
+
 
     public void changeLaneLeft() {
         Lane leftLane = agentLane.getLaneLeft();
@@ -182,7 +143,10 @@ public class RouteNavigator {
         return ii;
     }
 
-    public Lane getNeighbourLane() {
+    /**
+     * Method for getting neighboiring lane.
+     */
+    private Lane getNeighbourLane() {
         Lane neighbourLane = agentLane.getLaneLeft();
         if (neighbourLane == null) {
             // Try right lane
@@ -222,7 +186,11 @@ public class RouteNavigator {
         return nextLane;
     }
 
-    public Point2f getRoutePoint() {
+    /**
+     * Method for getting actual Point2d location on the lane.
+     * @return
+     */
+    public Point2f getArctualLanePoint() {
         if(isInitialized){
             if(pointPtr >= agentLane.getInnerPoints().size()) pointPtr = agentLane.getInnerPoints().size() - 1;
             return agentLane.getInnerPoints().get(pointPtr);
@@ -251,7 +219,7 @@ public class RouteNavigator {
     }
 
     public Point2f next() {
-        Point2f p = getRoutePoint();
+        Point2f p = getArctualLanePoint();
         advanceInRoute();
         return p;
     }
@@ -260,7 +228,7 @@ public class RouteNavigator {
         int OLDpointPtr = pointPtr;
         int OLDroutePtr = routePtr;
         Lane OLDagentLane = agentLane;
-        Point2f p = getRoutePoint();
+        Point2f p = getArctualLanePoint();
         advanceInRoute();
         pointPtr = OLDpointPtr;
         routePtr = OLDroutePtr;

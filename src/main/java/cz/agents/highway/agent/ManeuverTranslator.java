@@ -84,7 +84,7 @@ public class ManeuverTranslator {
         }
         int i = 0;
         do {
-            innerPoint = navigator.getRoutePoint();
+            innerPoint = navigator.getArctualLanePoint();
             if (!pointCloseEnough(innerPoint, pos2D, vel2D)) {
                 navigator.advanceInRoute();
             }

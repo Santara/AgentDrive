@@ -1,9 +1,7 @@
 package cz.agents.highway.environment.SimulatorHandlers;
 
 import cz.agents.alite.configurator.Configurator;
-import cz.agents.alite.protobuf.factory.ProtobufFactory;
-import cz.agents.highway.environment.HighwayEnvironment;
-import cz.agents.highway.storage.HighwayEventType;
+import cz.agents.highway.creator.AgentDrive;
 import cz.agents.highway.storage.RadarData;
 import cz.agents.highway.storage.RoadObject;
 import cz.agents.highway.storage.plan.Action;
@@ -12,41 +10,54 @@ import cz.agents.highway.storage.plan.WPAction;
 
 import javax.vecmath.Point3f;
 import javax.vecmath.Vector3f;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Created by david on 9/11/15.
+ * Created by david on 7/13/16.
  */
-public class LocalSimulatorHandler extends SimulatorHandler {
 
-    public LocalSimulatorHandler(HighwayEnvironment highwayEnvironment,Set<Integer> plannedVehicles) {
-        super(highwayEnvironment,plannedVehicles);
+public class SimulatorDemo {
+    private AgentDrive agentDrive;
+    private RadarData simulatorState;
+    private Boolean newPlan = false;
+    public SimulatorDemo() {
+
     }
-
-    @Override
-    public void sendPlans(Map<Integer, RoadObject> vehicleStates) {
-        RadarData radarData = new RadarData();
-        Set<Integer> notPlanned = new HashSet<Integer>(vehicleStates.keySet());
-        notPlanned.removeAll(plannedVehicles);
-
-        for (int id : notPlanned) {
-            radarData.add(vehicleStates.get(id));
+    private void run() throws InterruptedException {
+        PlanCallback plc = new PlanCallbackImp();
+        agentDrive = new AgentDrive("settings/groovy/local/david.groovy");
+        agentDrive.registerPlanCallback(plc);
+        Thread t = new Thread(agentDrive,"AgentDrive");
+        t.start();
+        //while{true}{
+        synchronized (newPlan)
+        {
+            while(!newPlan) {
+                wait();
+            }
         }
+        System.out.println("Excelent job");
+        agentDrive.update(simulatorState);
+        newPlan = false;
+        //}
 
-        // Finally send plans and updates
-        executePlans(plans);
-        plans.clear();
     }
-    private void executePlans(PlansOut plans) {
-        Map<Integer, RoadObject> currStates = highwayEnvironment.getStorage().getPosCurr();
+    public static void main(String[] args) throws InterruptedException {
+        SimulatorDemo sim = new SimulatorDemo();
+        sim.run();
+
+    }
+    class PlanCallbackImp implements PlanCallback {
+    //final HashSet<Integer> plannedVehicles = new HashSet<Integer>();
+    @Override
+    public void execute(PlansOut plans) {
+        System.out.println("Not bad");
+        Map<Integer, RoadObject> currStates = plans.getCurrStates();
         RadarData radarData = new RadarData();
         float duration = 0;
         float lastDuration = 0;
         double timest = Configurator.getParamDouble("highway.SimulatorLocal.timestep", 1.0);
-        float timestep = (float)timest;
+        float timestep = (float) timest;
 
         boolean removeCar = false;
         for (Integer carID : plans.getCarIds()) {
@@ -57,8 +68,7 @@ public class LocalSimulatorHandler extends SimulatorHandler {
             for (Action action : plan) {
                 if (action.getClass().equals(WPAction.class)) {
                     WPAction wpAction = (WPAction) action;
-                    if(wpAction.getSpeed() == -1)
-                    {
+                    if (wpAction.getSpeed() == -1) {
                         myPosition = wpAction.getPosition();
                         removeCar = true;
                     }
@@ -86,14 +96,7 @@ public class LocalSimulatorHandler extends SimulatorHandler {
                     lastPosition = wpAction.getPosition();
                 }
             }
-            if(removeCar)
-            {
-                if(Configurator.getParamBool("highway.dashboard.sumoSimulation",true))
-                    plannedVehicles.remove(carID);
-                removeCar = false;
-            }
-            else
-            {
+            if (!removeCar) {
                 Vector3f vel = new Vector3f(state.getPosition());
                 vel.negate();
                 vel.add(myPosition);
@@ -102,14 +105,19 @@ public class LocalSimulatorHandler extends SimulatorHandler {
                     vel.normalize();
                     vel.scale(0.001f);
                 }
-                int lane = highwayEnvironment.getRoadNetwork().getClosestLane(myPosition).getIndex();
-                state = new RoadObject(carID, highwayEnvironment.getEventProcessor().getCurrentTime(), lane, myPosition, vel);
+                int lane = -1;
+                state = new RoadObject(carID, System.currentTimeMillis(), lane, myPosition, vel);
                 radarData.add(state);
                 duration = 0;
             }
         }
-        //send radar-data to storage with duration delay
-       // System.out.println(highwayEnvironment.getEventProcessor().getCurrentTime());
-        highwayEnvironment.getEventProcessor().addEvent(HighwayEventType.RADAR_DATA, highwayEnvironment.getStorage(), null, radarData, Math.max(1, (long) (timestep * 1000)));
+        simulatorState = radarData;
+        synchronized (newPlan) {
+            newPlan = true;
+            notifyAll();
+        }
     }
 }
+}
+
+
