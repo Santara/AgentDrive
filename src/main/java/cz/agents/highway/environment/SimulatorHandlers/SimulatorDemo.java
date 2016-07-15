@@ -10,7 +10,8 @@ import cz.agents.highway.storage.plan.WPAction;
 
 import javax.vecmath.Point3f;
 import javax.vecmath.Vector3f;
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * Created by david on 7/13/16.
@@ -18,50 +19,55 @@ import java.util.*;
 
 public class SimulatorDemo {
     private AgentDrive agentDrive;
-    private RadarData simulatorState;
+    private RadarData simulatorState = new RadarData();
     private Boolean newPlan = false;
+    private boolean end = false;
+    private PlansOut planToExecute = new PlansOut();
+    private PlansOut currentPlan;
+
     public SimulatorDemo() {
 
     }
+
     private void run() throws InterruptedException {
         PlanCallback plc = new PlanCallbackImp();
         agentDrive = new AgentDrive("settings/groovy/local/david.groovy");
         agentDrive.registerPlanCallback(plc);
-        Thread t = new Thread(agentDrive,"AgentDrive");
+        Thread t = new Thread(agentDrive, "AgentDrive");
         t.start();
-        //while{true}{
-        synchronized (newPlan)
-        {
-            while(!newPlan) {
-                wait();
-            }
+        while (!end) {
+            updatePlan();
+            agentDrive.update(simulatorState);
+            Thread.sleep(100);
         }
         System.out.println("Excelent job");
-        agentDrive.update(simulatorState);
-        newPlan = false;
-        //}
 
     }
-    public static void main(String[] args) throws InterruptedException {
-        SimulatorDemo sim = new SimulatorDemo();
-        sim.run();
 
+    private void updatePlan() {
+        if (planToExecute == null) return;
+        boolean isPlanUpdated = false;
+        synchronized (planToExecute) {
+            if (planToExecute != currentPlan) {
+                currentPlan = planToExecute;
+                isPlanUpdated = true;
+            }
+        }
+        if(isPlanUpdated) {
+            executePlan();
+        }
     }
-    class PlanCallbackImp implements PlanCallback {
-    //final HashSet<Integer> plannedVehicles = new HashSet<Integer>();
-    @Override
-    public void execute(PlansOut plans) {
-        System.out.println("Not bad");
-        Map<Integer, RoadObject> currStates = plans.getCurrStates();
+    private void executePlan(){
+        System.out.println("Simulator executing plan: "+currentPlan);
+        Map<Integer, RoadObject> currStates = currentPlan.getCurrStates();
         RadarData radarData = new RadarData();
         float duration = 0;
         float lastDuration = 0;
-        double timest = Configurator.getParamDouble("highway.SimulatorLocal.timestep", 1.0);
-        float timestep = (float) timest;
+        float timestep = Configurator.getParamDouble("highway.SimulatorLocal.timestep", 1.0).floatValue();
 
         boolean removeCar = false;
-        for (Integer carID : plans.getCarIds()) {
-            Collection<Action> plan = plans.getPlan(carID);
+        for (Integer carID : currentPlan.getCarIds()) {
+            Collection<Action> plan = currentPlan.getPlan(carID);
             RoadObject state = currStates.get(carID);
             Point3f lastPosition = state.getPosition();
             Point3f myPosition = state.getPosition();
@@ -111,13 +117,25 @@ public class SimulatorDemo {
                 duration = 0;
             }
         }
-        simulatorState = radarData;
-        synchronized (newPlan) {
-            newPlan = true;
-            notifyAll();
-        }
+            simulatorState = radarData;
     }
-}
+
+    public static void main(String[] args) throws InterruptedException {
+        SimulatorDemo sim = new SimulatorDemo();
+        sim.run();
+
+    }
+
+    class PlanCallbackImp implements PlanCallback {
+        //final HashSet<Integer> plannedVehicles = new HashSet<Integer>();
+        @Override
+        public void execute(PlansOut plans) {
+            synchronized (planToExecute) {
+                planToExecute = plans;
+            }
+        }
+
+    }
 }
 
 

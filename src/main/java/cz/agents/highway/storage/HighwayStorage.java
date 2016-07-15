@@ -127,9 +127,9 @@ public class HighwayStorage extends EventBasedStorage {
             agent = new GSDAgent(id, highwayEnvironment.getRoadNetwork());
         } else if (agentClassName.equals("ADPPAgent")) {
             agent = new ADPPAgent(id, highwayEnvironment.getRoadNetwork());
-        }else{
+        } else {
             try {
-                throw new Exception("Agent class: "+agentClassName+" not supported!");
+                throw new Exception("Agent class: " + agentClassName + " not supported!");
             } catch (Exception e) {
                 e.printStackTrace();
                 System.exit(1);
@@ -168,28 +168,28 @@ public class HighwayStorage extends EventBasedStorage {
         return trajectories;
     }
 
-    public void updateCars(RadarData object) {
+    public void updateCars(RadarData radarData) {
         //   if (!object.getCars().isEmpty()) {
 
-        experimentsData.updateNumberOfCars(object);
+        experimentsData.updateNumberOfCars(radarData);
 
         forRemoveFromPosscur = new TreeSet<Integer>(posCurr.keySet());
-        for (RoadObject car : object.getCars()) {
+        for (RoadObject car : radarData.getCars()) {
             updateCar(car);
             forRemoveFromPosscur.remove(car.getId());
         }
         if (!forRemoveFromPosscur.isEmpty()) {
             for (Integer id : forRemoveFromPosscur) {
                 addForInsert(id);
-                experimentsData.updateTimesAndGraphOfArrivals(object, id);
+                experimentsData.updateTimesAndGraphOfArrivals(radarData, id);
             }
         }
-        logger.debug("HighwayStorage updated vehicles: received " + object);
+        logger.debug("HighwayStorage updated vehicles: received " + radarData);
 
         for (Map.Entry<Integer, RoadObject> entry : posCurr.entrySet()) {
-            experimentsData.updateDistances(object, entry);
+            experimentsData.updateDistances(radarData, entry);
         }
-        recreate(object);
+        recreate(radarData);
         if (Configurator.getParamBool("highway.dashboard.sumoSimulation", true) &&
                 posCurr.size() == 0 && vehiclesForInsert.isEmpty()) {
             getEventProcessor().addEvent(EventProcessorEventType.STOP, null, null, null);
@@ -211,7 +211,7 @@ public class HighwayStorage extends EventBasedStorage {
         vehiclesForInsert.add(new Pair<Integer, Float>(id, time));
     }
 
-    public void recreate(RadarData object) {
+    public void recreate(RadarData radarData) {
         Queue<Pair<Integer, Float>> notInsertedVehicles = new PriorityQueue<Pair<Integer, Float>>(20, comparator);
         while (vehiclesForInsert.peek() != null) {
             Pair<Integer, Float> vehicle = vehiclesForInsert.poll();
@@ -220,7 +220,7 @@ public class HighwayStorage extends EventBasedStorage {
                 posCurr.remove(id);
             }
             if (agents.containsKey(id) && Configurator.getParamBool("highway.dashboard.sumoSimulation", true)) continue;
-            if (isDeleted(object, id) == false) {
+            if (isDeleted(radarData, id) == false) {
                 notInsertedVehicles.add(vehicle);
                 continue;
             }
@@ -278,6 +278,7 @@ public class HighwayStorage extends EventBasedStorage {
         while (notInsertedVehicles.peek() != null) {
             vehiclesForInsert.add(notInsertedVehicles.poll());
         }
+        getEventProcessor().addEvent(HighwayEventType.UPDATED, null, null, null);
     }
 
     private boolean isDeleted(RadarData object, int id) {
