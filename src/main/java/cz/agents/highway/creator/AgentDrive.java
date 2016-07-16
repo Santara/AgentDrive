@@ -7,6 +7,7 @@ import cz.agents.alite.configreader.ConfigReader;
 import cz.agents.alite.configurator.Configurator;
 import cz.agents.alite.simulation.SimulationEventType;
 import cz.agents.highway.agent.Agent;
+import cz.agents.highway.environment.SimulatorHandlers.LocalSimulatorHandler;
 import cz.agents.highway.environment.SimulatorHandlers.ModuleSimulatorHandler;
 import cz.agents.highway.environment.SimulatorHandlers.PlanCallback;
 import cz.agents.highway.environment.roadnet.XMLReader;
@@ -18,31 +19,29 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
 /**
  * Created by david on 7/13/16.
  */
-public class AgentDrive extends DefaultCreator implements EventHandler, Runnable {
+public class AgentDrive extends DefaultCreator implements EventHandler,Runnable {
 
     private final Logger logger = Logger.getLogger(DashBoardController.class);
     protected long timestep;
     private PlanCallback plancallback;
-    private RadarData radarData;
-    private RadarData newRadarData;
-
-    public AgentDrive(String configFileLocation) {
+    public AgentDrive(String configFileLocation)
+    {
         CONFIG_FILE = configFileLocation;
     }
-
     @Override
     public void run() {
         init();
         create();
     }
-
-    public void init() {
+    public void init()
+    {
         // Configuration loading using alite's Configurator and ConfigReader
         ConfigReader configReader = new ConfigReader();
         configReader.loadAndMerge(DEFAULT_CONFIG_FILE);
@@ -56,39 +55,21 @@ public class AgentDrive extends DefaultCreator implements EventHandler, Runnable
 
         logger.setLevel(Level.INFO);
         logger.info("Configuration loaded from: " + CONFIG_FILE);
-        if (logger.isDebugEnabled()) {
+        if(logger.isDebugEnabled()){
             logger.debug("Printing complete configuration on the System.out >>");
             configReader.writeTo(new PrintWriter(System.out));
         }
         logger.info("log4j logger properties loaded from: " + logfile);
     }
-
-    public void update(RadarData radarData) {
-        if (newRadarData == null){
-            newRadarData = radarData;
-        }
-        synchronized (newRadarData) {
-            newRadarData = radarData;
-        }
-    }
-
-    private void readRadarData() {
-        boolean updated = false;
-
-        synchronized (newRadarData) {
-            if (radarData != newRadarData) {
-                radarData = newRadarData;
-                updated = true;
-            }
-        }
-        if (updated) {
-            System.out.println("Radar data update detected "+radarData);
-            highwayEnvironment.getEventProcessor().addEvent(HighwayEventType.RADAR_DATA, highwayEnvironment.getStorage(), null, radarData, Math.max(1, (long) (timestep * 1000)));
-        }
+    public void update(RadarData radarData)
+    {
+        //highwayEnvironment.getEventProcessor().addEvent(HighwayEventType.RADAR_DATA, highwayEnvironment.getStorage(), null, radarData, Math.max(1, (long) (timestep * 100)));
+        highwayEnvironment.getStorage().updateCars(radarData);
     }
 
 
-    public void registerPlanCallback(PlanCallback plancallback) {
+    public void registerPlanCallback(PlanCallback plancallback)
+    {
         this.plancallback = plancallback;
     }
 
@@ -143,7 +124,7 @@ public class AgentDrive extends DefaultCreator implements EventHandler, Runnable
             plannedVehiclesLocal.add(vehicleID);
         }
         final Set<Integer> plannedVehicles = plannedVehiclesLocal;
-        highwayEnvironment.addSimulatorHandler(new ModuleSimulatorHandler(highwayEnvironment, new HashSet<Integer>(plannedVehicles), plancallback));
+        highwayEnvironment.addSimulatorHandler(new ModuleSimulatorHandler(highwayEnvironment, new HashSet<Integer>(plannedVehicles),plancallback));
 
     }
 
@@ -157,8 +138,8 @@ public class AgentDrive extends DefaultCreator implements EventHandler, Runnable
         if (event.isType(SimulationEventType.SIMULATION_STARTED)) {
             System.out.println("Caught SIMULATION_STARTED from DashBoard");
             getEventProcessor().addEvent(HighwayEventType.TIMESTEP, null, null, null, timestep);
-        } else if (event.isType(HighwayEventType.TIMESTEP)) {
-            readRadarData();
+        }
+        else if (event.isType(HighwayEventType.TIMESTEP)) {
             getEventProcessor().addEvent(HighwayEventType.TIMESTEP, null, null, null, timestep);
         }
     }

@@ -10,8 +10,7 @@ import cz.agents.highway.storage.plan.WPAction;
 
 import javax.vecmath.Point3f;
 import javax.vecmath.Vector3f;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by david on 7/13/16.
@@ -19,55 +18,52 @@ import java.util.Map;
 
 public class SimulatorDemo {
     private AgentDrive agentDrive;
-    private RadarData simulatorState = new RadarData();
+    private RadarData simulatorState;
     private Boolean newPlan = false;
-    private boolean end = false;
-    private PlansOut planToExecute = new PlansOut();
-    private PlansOut currentPlan;
-
+    private final Object mutex = new Object();
     public SimulatorDemo() {
 
     }
-
     private void run() throws InterruptedException {
         PlanCallback plc = new PlanCallbackImp();
         agentDrive = new AgentDrive("settings/groovy/local/david.groovy");
         agentDrive.registerPlanCallback(plc);
-        Thread t = new Thread(agentDrive, "AgentDrive");
+        Thread t = new Thread(agentDrive,"AgentDrive");
         t.start();
-        while (!end) {
-            updatePlan();
-            agentDrive.update(simulatorState);
-            Thread.sleep(100);
-        }
-        System.out.println("Excelent job");
-
-    }
-
-    private void updatePlan() {
-        if (planToExecute == null) return;
-        boolean isPlanUpdated = false;
-        synchronized (planToExecute) {
-            if (planToExecute != currentPlan) {
-                currentPlan = planToExecute;
-                isPlanUpdated = true;
+        while(true){
+            synchronized (mutex)
+            {
+                while(!newPlan) {
+                    mutex.wait();
+                }
+               // System.out.println("Excelent job");
+                Thread.sleep(1000);
+                agentDrive.update(simulatorState);
+                newPlan = false;
             }
         }
-        if(isPlanUpdated) {
-            executePlan();
-        }
+
     }
-    private void executePlan(){
-        System.out.println("Simulator executing plan: "+currentPlan);
-        Map<Integer, RoadObject> currStates = currentPlan.getCurrStates();
+    public static void main(String[] args) throws InterruptedException {
+        SimulatorDemo sim = new SimulatorDemo();
+        sim.run();
+
+    }
+    class PlanCallbackImp implements PlanCallback {
+    //final HashSet<Integer> plannedVehicles = new HashSet<Integer>();
+    @Override
+    public void execute(PlansOut plans) {
+        System.out.println("Recieved plans " + plans);
+        Map<Integer, RoadObject> currStates = plans.getCurrStates();
         RadarData radarData = new RadarData();
         float duration = 0;
         float lastDuration = 0;
-        float timestep = Configurator.getParamDouble("highway.SimulatorLocal.timestep", 1.0).floatValue();
+        double timest = Configurator.getParamDouble("highway.SimulatorLocal.timestep", 1.0);
+        float timestep = (float) timest;
 
         boolean removeCar = false;
-        for (Integer carID : currentPlan.getCarIds()) {
-            Collection<Action> plan = currentPlan.getPlan(carID);
+        for (Integer carID : plans.getCarIds()) {
+            Collection<Action> plan = plans.getPlan(carID);
             RoadObject state = currStates.get(carID);
             Point3f lastPosition = state.getPosition();
             Point3f myPosition = state.getPosition();
@@ -117,25 +113,13 @@ public class SimulatorDemo {
                 duration = 0;
             }
         }
+        synchronized (mutex) {
             simulatorState = radarData;
-    }
-
-    public static void main(String[] args) throws InterruptedException {
-        SimulatorDemo sim = new SimulatorDemo();
-        sim.run();
-
-    }
-
-    class PlanCallbackImp implements PlanCallback {
-        //final HashSet<Integer> plannedVehicles = new HashSet<Integer>();
-        @Override
-        public void execute(PlansOut plans) {
-            synchronized (planToExecute) {
-                planToExecute = plans;
-            }
+            newPlan = true;
+            mutex.notifyAll();
         }
-
     }
+}
 }
 
 
