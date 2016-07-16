@@ -20,6 +20,7 @@ public class SimulatorDemo {
     private AgentDrive agentDrive;
     private RadarData simulatorState;
     private Boolean newPlan = false;
+    private final Object mutex = new Object();
     public SimulatorDemo() {
 
     }
@@ -29,17 +30,18 @@ public class SimulatorDemo {
         agentDrive.registerPlanCallback(plc);
         Thread t = new Thread(agentDrive,"AgentDrive");
         t.start();
-        //while{true}{
-        synchronized (newPlan)
-        {
-            while(!newPlan) {
-                wait();
+        while(true){
+            synchronized (mutex)
+            {
+                while(!newPlan) {
+                    mutex.wait();
+                }
+               // System.out.println("Excelent job");
+                Thread.sleep(1000);
+                agentDrive.update(simulatorState);
+                newPlan = false;
             }
         }
-        System.out.println("Excelent job");
-        agentDrive.update(simulatorState);
-        newPlan = false;
-        //}
 
     }
     public static void main(String[] args) throws InterruptedException {
@@ -51,7 +53,7 @@ public class SimulatorDemo {
     //final HashSet<Integer> plannedVehicles = new HashSet<Integer>();
     @Override
     public void execute(PlansOut plans) {
-        System.out.println("Not bad");
+        System.out.println("Recieved plans " + plans);
         Map<Integer, RoadObject> currStates = plans.getCurrStates();
         RadarData radarData = new RadarData();
         float duration = 0;
@@ -111,10 +113,10 @@ public class SimulatorDemo {
                 duration = 0;
             }
         }
-        simulatorState = radarData;
-        synchronized (newPlan) {
+        synchronized (mutex) {
+            simulatorState = radarData;
             newPlan = true;
-            notifyAll();
+            mutex.notifyAll();
         }
     }
 }

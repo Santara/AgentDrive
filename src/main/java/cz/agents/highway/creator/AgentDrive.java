@@ -63,7 +63,8 @@ public class AgentDrive extends DefaultCreator implements EventHandler,Runnable 
     }
     public void update(RadarData radarData)
     {
-        highwayEnvironment.getEventProcessor().addEvent(HighwayEventType.RADAR_DATA, highwayEnvironment.getStorage(), null, radarData, Math.max(1, (long) (timestep * 1000)));
+        //highwayEnvironment.getEventProcessor().addEvent(HighwayEventType.RADAR_DATA, highwayEnvironment.getStorage(), null, radarData, Math.max(1, (long) (timestep * 100)));
+        highwayEnvironment.getStorage().updateCars(radarData);
     }
 
 
