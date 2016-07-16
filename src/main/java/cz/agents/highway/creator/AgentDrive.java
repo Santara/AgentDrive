@@ -6,8 +6,8 @@ import cz.agents.alite.common.event.EventProcessor;
 import cz.agents.alite.configreader.ConfigReader;
 import cz.agents.alite.configurator.Configurator;
 import cz.agents.alite.simulation.SimulationEventType;
+import cz.agents.highway.SimulatorLite.SimulatorCreator;
 import cz.agents.highway.agent.Agent;
-import cz.agents.highway.environment.SimulatorHandlers.LocalSimulatorHandler;
 import cz.agents.highway.environment.SimulatorHandlers.ModuleSimulatorHandler;
 import cz.agents.highway.environment.SimulatorHandlers.PlanCallback;
 import cz.agents.highway.environment.roadnet.XMLReader;
@@ -19,7 +19,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
